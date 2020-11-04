@@ -1,0 +1,112 @@
+---
+apiVersion: v1
+data:
+  registry.htpasswd: {{ ('registry:' + ( registry_password | password_hash('bcrypt')) + '\n') | b64encode }}
+kind: Secret
+metadata:
+  name: registry-htpasswd
+  namespace: {{ registry_namespace }}
+  labels:
+    app: registry-app
+type: Opaque
+---
+apiVersion: v1
+data:
+  registry: {{ registry_password | b64encode }}
+kind: Secret
+metadata:
+  name: registry-pass
+  namespace: {{ registry_namespace }}
+  labels:
+    app: registry-app
+type: Opaque
+---
+apiVersion: v1
+kind: Service
+metadata:
+  namespace: {{ registry_namespace }}
+  name: registry-svc
+spec:
+  selector:
+    app: registry-app
+  type: ClusterIP
+{% if registry_clusterip is defined %}
+  clusterIP: {{ registry_clusterip }}
+{% endif %}
+  ports:
+    - protocol: TCP
+      port: {{ registry_port }}
+      targetPort: {{ registry_port }}
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  namespace: {{ registry_namespace }}
+  name: registry-ss
+  labels:
+    app: registry-app
+spec:
+  serviceName: "registry-svc"
+  replicas: 1
+  selector:
+    matchLabels:
+      app: registry-app
+  template:
+    metadata:
+      labels:
+        app: registry-app
+      annotations:
+        triggerHash: "{{ trigger_sha_sum['stat']['checksum'] }}"
+    spec:
+      tolerations:
+{% if registry_tolerate_master %}
+        - key: node-role.kubernetes.io/master
+          operator: Exists
+          effect: NoSchedule
+{% endif %}
+      volumes:
+        - name: registry-htpasswd
+          secret:
+            secretName: registry-htpasswd
+        - name: registry-cert
+          secret:
+            secretName: registry-cert
+      containers:
+        - name: registry
+          image: docker.io/library/registry:2
+          env:
+            - name: REGISTRY_HTTP_ADDR
+              value: 0.0.0.0:{{ registry_port }}
+            - name: REGISTRY_AUTH
+              value: htpasswd
+            - name: REGISTRY_AUTH_HTPASSWD_REALM
+              value: Registry
+            - name: REGISTRY_AUTH_HTPASSWD_PATH
+              value: /var/run/secrets/registry-htpasswd/registry.htpasswd
+            - name: REGISTRY_HTTP_TLS_KEY
+              value: /var/run/secrets/registry-cert/registry.key
+            - name: REGISTRY_HTTP_TLS_CERTIFICATE
+              value: /var/run/secrets/registry-cert/registry.crt
+          ports:
+            - containerPort: {{ registry_port }}
+          volumeMounts:
+            - name: registry-pvc
+              mountPath: /var/lib/registry
+            - name: registry-htpasswd
+              mountPath: /var/run/secrets/registry-htpasswd
+              readOnly: true
+            - name: registry-cert
+              mountPath: /var/run/secrets/registry-cert
+              readOnly: true
+  volumeClaimTemplates:
+    - metadata:
+        name: registry-pvc
+      spec:
+        accessModes: [ "ReadWriteOnce" ]
+        storageClassName: "{{ registry_storageclass }}"
+        resources:
+          requests:
+            storage: {{ registry_storagesize }}
+        selector:
+          matchLabels:
+            app: registry-app

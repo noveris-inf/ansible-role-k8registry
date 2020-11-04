@@ -1,0 +1,11 @@
+---
+
+- name: Generate new registry password
+  shell: "openssl rand -base64 32 > {{ registry_config_dir }}/registry.pass"
+
+- name: Re-read registry password
+  command: "head -1 {{ registry_config_dir }}/registry.pass"
+  register: registry_pass_run
+  changed_when: false
+
+...

@@ -1,0 +1,49 @@
+---
+
+- name: Create registry config directory
+  command: "mkdir -p {{ registry_config_dir }}"
+
+- name: Registry location
+  file:
+    state: directory
+    path: "{{ registry_config_dir }}"
+    owner: "root"
+    group: "root"
+    mode: 0755
+
+- name: Read registry cert
+  slurp:
+    src: "{{ registry_cert_file }}"
+  register: registry_cert_data
+
+- name: Read registry key
+  slurp:
+    src: "{{ registry_key_file }}"
+  register: registry_key_data
+
+- name: Copy registry triggers
+  template:
+    src: registry_triggers.yml.j2
+    dest: "{{ registry_config_dir }}/registry_triggers.yml"
+    owner: root
+    group: root
+    mode: 0640
+
+- name: Get trigger SHA sum
+  stat:
+    checksum_algorithm: sha256
+    path: "{{ registry_config_dir }}/registry_triggers.yml"
+  register: trigger_sha_sum
+
+- name: Copy registry config
+  template:
+    src: registry.yml.j2
+    dest: "{{ registry_config_dir }}/registry.yml"
+    owner: root
+    group: root
+    mode: 0640
+
+- name: Apply registry resources
+  command: "kubectl apply -f {{ registry_config_dir }}/registry_triggers.yml -f {{ registry_config_dir }}/registry.yml"
+
+...

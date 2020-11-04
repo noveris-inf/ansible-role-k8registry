@@ -1,0 +1,13 @@
+---
+
+registry_namespace: "{{ kubernetes_namespace | default('default')}}"
+registry_config_dir: "{{ kubernetes_namespace_dir }}/registry"
+#registry_clusterip:
+registry_port: 5000
+registry_tolerate_master: false
+#registry_cert_file:
+#registry_key_file:
+registry_storageclass: "local-sc"
+registry_storagesize: "10Gi"
+
+...
