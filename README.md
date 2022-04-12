@@ -1,3 +1,3 @@
-# ansible-role-k8registry
+# ansible-role-kube-registry
 
-[![Latest](https://github.com/noveris-inf/ansible-role-k8registry/workflows/Latest/badge.svg)](https://github.com/noveris-inf/ansible-role-k8registry/actions?query=workflow%3ALatest) [![Versioned](https://github.com/noveris-inf/ansible-role-k8registry/workflows/Versioned/badge.svg)](https://github.com/noveris-inf/ansible-role-k8registry/actions?query=workflow%3AVersioned)
+[![latest](https://github.com/archmachina/ansible-role-kube-registry/workflows/latest/badge.svg)](https://github.com/archmachina/ansible-role-kube-registry/actions?query=workflow%3Alatest)
